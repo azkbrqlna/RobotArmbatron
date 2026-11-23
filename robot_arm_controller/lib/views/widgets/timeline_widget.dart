@@ -243,7 +243,11 @@ class TimelineWidget extends StatelessWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Konveyor titik: ${controller.recordedConvDirection == 0 ? "Nonaktif" : (controller.recordedConvDirection == 1 ? "Maju ▶" : "◀ Mundur")} (${(controller.recordedConvDurationMs / 1000.0).toStringAsFixed(1)}s)',
+                        controller.recordedConvDirection == 0
+                            ? 'Konveyor titik: Nonaktif'
+                            : controller.useIrSensor
+                                ? 'Konveyor titik: ${controller.recordedConvDirection == 1 ? "Maju ▶" : "◀ Mundur"} (Tunggu Sensor IR)'
+                                : 'Konveyor titik: ${controller.recordedConvDirection == 1 ? "Maju ▶" : "◀ Mundur"} (${(controller.recordedConvDurationMs / 1000.0).toStringAsFixed(1)}s)',
                         style: const TextStyle(
                           color: Color(0xFF94A3B8),
                           fontSize: 10,

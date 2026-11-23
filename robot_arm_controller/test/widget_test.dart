@@ -23,4 +23,17 @@ void main() {
     expect(frame.convLabel, 'Maju ▶ (3.5s)');
     expect(frame.toCsv(), csv);
   });
+
+  test('RobotFrame parse CSV and format test with IR sensor mode', () {
+    const csv = '90,0,150,180,1,-1';
+    final frame = RobotFrame.fromCsv(csv);
+    expect(frame, isNotNull);
+    expect(frame!.angles, [90, 0, 150, 180]);
+    expect(frame.conv, 1);
+    expect(frame.convDurationMs, -1);
+    expect(frame.isIrMode, true);
+    expect(frame.convLabel, 'Maju ▶ (Sensor IR)');
+    expect(frame.convShortBadge, '▶ Sensor IR');
+    expect(frame.toCsv(), csv);
+  });
 }

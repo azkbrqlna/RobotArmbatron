@@ -46,7 +46,14 @@ class RobotFrame {
 
   double get durationSeconds => convDurationMs / 1000.0;
 
+  bool get isIrMode => convDurationMs == -1;
+
   String get convLabel {
+    if (isIrMode) {
+      if (conv == 1) return 'Maju ▶ (Sensor IR)';
+      if (conv == 2) return '◀ Mundur (Sensor IR)';
+      return 'Stop ⏹';
+    }
     final durText = convDurationMs > 0 ? ' (${durationSeconds.toStringAsFixed(1)}s)' : '';
     switch (conv) {
       case 1:
@@ -59,6 +66,11 @@ class RobotFrame {
   }
 
   String get convShortBadge {
+    if (isIrMode) {
+      if (conv == 1) return '▶ Sensor IR';
+      if (conv == 2) return '◀ Sensor IR';
+      return '■ Stop';
+    }
     if (conv == 1) {
       return convDurationMs > 0 ? '▶ ${durationSeconds.toStringAsFixed(1)}s' : '▶ Maju';
     } else if (conv == 2) {

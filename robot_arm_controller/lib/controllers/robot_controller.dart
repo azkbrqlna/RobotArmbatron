@@ -24,6 +24,7 @@ class RobotController extends ChangeNotifier {
   // Conveyor Recording State for current frame
   int _recordedConvDirection = 1; // 0=Stop, 1=Maju, 2=Mundur
   int _recordedConvDurationMs = 0;
+  bool _useIrSensor = false; // Mode tunggu sensor Infrared (durasi = -1)
   bool _isConvRecording = false;
   final Stopwatch _convStopwatch = Stopwatch();
   Timer? _convTicker;
@@ -51,11 +52,12 @@ class RobotController extends ChangeNotifier {
   int get convState => _convState;
   int get recordedConvDirection => _recordedConvDirection;
   int get recordedConvDurationMs => _recordedConvDurationMs;
+  bool get useIrSensor => _useIrSensor;
   bool get isConvRecording => _isConvRecording;
   bool get isConvTesting => _isConvTesting;
   int get convElapsedMs => _isConvRecording
       ? _convStopwatch.elapsedMilliseconds
-      : _recordedConvDurationMs;
+      : (_recordedConvDurationMs == -1 ? 0 : _recordedConvDurationMs);
   double get convElapsedSeconds => convElapsedMs / 1000.0;
 
   String get activeSeq => _activeSeq;
@@ -182,17 +184,45 @@ class RobotController extends ChangeNotifier {
       _recordedConvDirection = dir;
       if (dir == 0) {
         _recordedConvDurationMs = 0;
+        _useIrSensor = false;
+      } else if (_useIrSensor) {
+        _recordedConvDurationMs = -1;
+      }
+      notifyListeners();
+    }
+  }
+
+  /// Aktifkan / nonaktifkan mode tunggu sensor Infrared (GPIO 33)
+  void setUseIrSensor(bool val) {
+    if (_useIrSensor != val) {
+      _useIrSensor = val;
+      if (val) {
+        if (_isConvRecording) stopConvRecord();
+        if (_isConvTesting) cancelConvTest();
+        _recordedConvDurationMs = -1;
+        if (_recordedConvDirection == 0) {
+          _recordedConvDirection = 1; // Default ke Maju untuk sensor IR
+        }
+      } else {
+        if (_recordedConvDurationMs == -1) {
+          _recordedConvDurationMs = 0;
+        }
       }
       notifyListeners();
     }
   }
 
   void setRecordedConvDurationMs(int ms) {
-    _recordedConvDurationMs = ms < 0 ? 0 : ms;
+    _useIrSensor = (ms == -1);
+    _recordedConvDurationMs = ms;
     notifyListeners();
   }
 
   void adjustRecordedConvDuration(int deltaMs) {
+    if (_useIrSensor) {
+      _useIrSensor = false;
+      _recordedConvDurationMs = 0;
+    }
     final next = (_recordedConvDurationMs + deltaMs).clamp(0, 120000); // Max 2 menit
     _recordedConvDurationMs = next;
     notifyListeners();
@@ -298,7 +328,7 @@ class RobotController extends ChangeNotifier {
     }
 
     final dir = _recordedConvDirection;
-    final dur = _recordedConvDurationMs;
+    final dur = _useIrSensor ? -1 : _recordedConvDurationMs;
 
     final newFrame = RobotFrame(
       angles: List.from(_angles),
@@ -315,6 +345,7 @@ class RobotController extends ChangeNotifier {
     // Reset arah dan durasi untuk titik berikutnya
     _recordedConvDirection = 0;
     _recordedConvDurationMs = 0;
+    _useIrSensor = false;
     notifyListeners();
 
     btService.sendCommand('SAVE:$_activeSeq:$dir:$dur');
@@ -338,6 +369,7 @@ class RobotController extends ChangeNotifier {
       // Load saved conveyor configuration for this frame
       _recordedConvDirection = target.conv;
       _recordedConvDurationMs = target.convDurationMs;
+      _useIrSensor = (target.convDurationMs == -1);
       _isConvRecording = false;
       _convStopwatch.reset();
 
@@ -354,6 +386,7 @@ class RobotController extends ChangeNotifier {
     _editingIndex = -1;
     _recordedConvDirection = 0;
     _recordedConvDurationMs = 0;
+    _useIrSensor = false;
     notifyListeners();
   }
 
@@ -369,7 +402,7 @@ class RobotController extends ChangeNotifier {
     if (_editingIndex >= 0) {
       final list = _activeSeq == 'A' ? _framesA : _framesB;
       final dir = _recordedConvDirection;
-      final dur = _recordedConvDurationMs;
+      final dur = _useIrSensor ? -1 : _recordedConvDurationMs;
 
       if (_editingIndex < list.length) {
         list[_editingIndex] = RobotFrame(
@@ -382,6 +415,7 @@ class RobotController extends ChangeNotifier {
       _editingIndex = -1;
       _recordedConvDirection = 0;
       _recordedConvDurationMs = 0;
+      _useIrSensor = false;
       notifyListeners();
 
       btService.sendCommand('UPD:$_activeSeq:$idxToUpdate:$dir:$dur');

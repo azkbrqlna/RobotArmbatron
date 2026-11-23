@@ -23,6 +23,9 @@ Servo servos[4];
 const int PIN_CONV = 25;
 Servo convServo;
 
+// Sensor Infrared Proximity / Obstacle Avoidance (Pin 33)
+const int PIN_IR = 33;
+
 Preferences preferences;
 
 // Batas sudut fisik
@@ -435,6 +438,10 @@ void setup() {
   convServo.write(CONV_STOP);
   delay(15);
   convServo.attach(PIN_CONV);
+
+  // Inisialisasi Sensor Infrared (GPIO 33)
+  pinMode(PIN_IR, INPUT_PULLUP);
+
   loadSequences();
 
   // Inisialisasi Bluetooth Serial Classic
@@ -467,11 +474,20 @@ void loop() {
   if (isPlaying) {
     int maxCount = (playSeq == 'A') ? countA : countB;
     if (maxCount > 0) {
-      // 3a. Kontrol waktu durasi konveyor
-      if (convRunning && currentFrameConvDur > 0) {
-        if (millis() - convStartTime >= (unsigned long)currentFrameConvDur) {
-          convRunning = false;
-          updateConveyor(0); // Konveyor otomatis berhenti sesuai durasi terekam!
+      // 3a. Kontrol waktu durasi konveyor atau Sensor Infrared
+      if (convRunning) {
+        if (currentFrameConvDur > 0) {
+          // Mode Timer: Stop otomatis setelah durasi tercapai
+          if (millis() - convStartTime >= (unsigned long)currentFrameConvDur) {
+            convRunning = false;
+            updateConveyor(0); // Konveyor otomatis berhenti sesuai durasi terekam!
+          }
+        } else if (currentFrameConvDur == -1) {
+          // Mode Sensor IR: Berjalan terus sampai sensor IR membaca LOW (kotak terdeteksi)
+          if (digitalRead(PIN_IR) == LOW) {
+            convRunning = false;
+            updateConveyor(0); // Konveyor seketika BERHENTI saat kotak terdeteksi sensor IR!
+          }
         }
       }
 
@@ -512,5 +528,24 @@ void loop() {
   if (isPlaying && playIndex != lastReportedIndex) {
     lastReportedIndex = playIndex;
     sendStatus();
+  }
+
+  // ==========================================
+  // KALIBRASI SENSOR IR KE SERIAL MONITOR
+  // ==========================================
+  static unsigned long lastIrPrint = 0;
+  static int lastIrVal = -1;
+  int currentIrVal = digitalRead(PIN_IR);
+
+  // Cetak status sensor secara berkala (tiap 300ms) atau seketika saat status berubah
+  if (millis() - lastIrPrint >= 300 || currentIrVal != lastIrVal) {
+    lastIrPrint = millis();
+    lastIrVal = currentIrVal;
+
+    if (currentIrVal == LOW) {
+      Serial.println(">>> [SENSOR IR GPIO 33]: TERDETEKSI (Kotak Ada / Nilai: 0 LOW)");
+    } else {
+      Serial.println("    [SENSOR IR GPIO 33]: BERSIH (Tidak Ada Kotak / Nilai: 1 HIGH)");
+    }
   }
 }

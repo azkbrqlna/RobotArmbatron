@@ -230,177 +230,269 @@ class ConveyorWidget extends StatelessWidget {
           if (dir != 0) ...[
             const SizedBox(height: 10),
 
-            // Timer Display Deck
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: isRecording
-                    ? const Color(0xFF450A0A)
-                    : const Color(0xFF090D15),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isRecording
-                      ? const Color(0xFFEF4444)
-                      : const Color(0xFF1E293B),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isRecording ? 'SEDANG MEREKAM WAKTU...' : 'DURASI TERCATAT:',
-                        style: TextStyle(
-                          color: isRecording
-                              ? const Color(0xFFFCA5A5)
-                              : const Color(0xFF94A3B8),
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            elapsedSec,
-                            style: TextStyle(
-                              color: isRecording
-                                  ? const Color(0xFFEF4444)
-                                  : elapsedMs > 0
-                                      ? const Color(0xFF38BDF8)
-                                      : const Color(0xFF64748B),
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'detik',
-                            style: TextStyle(
-                              color: isRecording
-                                  ? const Color(0xFFFCA5A5)
-                                  : const Color(0xFF64748B),
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+            // Selector Mode Pemberhentian: Waktu (Timer) vs Sensor IR
+            Row(
+              children: [
+                Expanded(
+                  child: _buildModeTab(
+                    'Waktu (Timer)',
+                    !controller.useIrSensor,
+                    Icons.timer_outlined,
+                    () => controller.setUseIrSensor(false),
                   ),
-
-                  // Quick Tune Buttons (+/- 0.5s & Reset)
-                  if (!isRecording)
-                    Row(
-                      children: [
-                        _buildFineTuneBtn('-0.5s', () {
-                          controller.adjustRecordedConvDuration(-500);
-                        }),
-                        const SizedBox(width: 4),
-                        _buildFineTuneBtn('+0.5s', () {
-                          controller.adjustRecordedConvDuration(500);
-                        }),
-                        if (elapsedMs > 0) ...[
-                          const SizedBox(width: 4),
-                          IconButton(
-                            icon: const Icon(Icons.refresh, size: 16),
-                            color: const Color(0xFF94A3B8),
-                            tooltip: 'Reset Durasi',
-                            onPressed: () =>
-                                controller.resetRecordedConvDuration(),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ],
-                      ],
-                    ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: _buildModeTab(
+                    'Sensor IR (Pin 33)',
+                    controller.useIrSensor,
+                    Icons.sensors,
+                    () => controller.setUseIrSensor(true),
+                  ),
+                ),
+              ],
             ),
 
             const SizedBox(height: 10),
 
-            // Tombol Utama Rekam (Play Jalan / Stop Berhenti)
-            if (!isRecording) ...[
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF059669),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+            if (controller.useIrSensor) ...[
+              // IR Sensor Deck
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0C2135),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF0284C7)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0369A1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Icon(
+                            Icons.sensors,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                         ),
-                        elevation: 0,
-                      ),
-                      icon: const Icon(Icons.play_arrow, size: 18),
-                      label: const Text(
-                        'Play & Rekam Waktu',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                      onPressed: () => controller.startConvRecord(),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'AUTO-STOP SENSOR INFRARED',
+                                style: TextStyle(
+                                  color: Color(0xFF38BDF8),
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              SizedBox(height: 1),
+                              Text(
+                                'Tersambung di Pin GPIO 33 ESP32',
+                                style: TextStyle(
+                                  color: Color(0xFF94A3B8),
+                                  fontSize: 9.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Saat otomatisasi dijalankan, konveyor akan berputar terus sampai kotak terdeteksi oleh sensor IR, lalu seketika BERHENTI dan lengan robot bergerak mengambil kotak.',
+                      style: TextStyle(
+                        color: Color(0xFFE2E8F0),
+                        fontSize: 10.5,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              // Timer Display Deck
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isRecording
+                      ? const Color(0xFF450A0A)
+                      : const Color(0xFF090D15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isRecording
+                        ? const Color(0xFFEF4444)
+                        : const Color(0xFF1E293B),
                   ),
-                  if (elapsedMs > 0) ...[
-                    const SizedBox(width: 6),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isRecording ? 'SEDANG MEREKAM WAKTU...' : 'DURASI TERCATAT:',
+                          style: TextStyle(
+                            color: isRecording
+                                ? const Color(0xFFFCA5A5)
+                                : const Color(0xFF94A3B8),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              elapsedSec,
+                              style: TextStyle(
+                                color: isRecording
+                                    ? const Color(0xFFEF4444)
+                                    : elapsedMs > 0
+                                        ? const Color(0xFF38BDF8)
+                                        : const Color(0xFF64748B),
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'detik',
+                              style: TextStyle(
+                                color: isRecording
+                                    ? const Color(0xFFFCA5A5)
+                                    : const Color(0xFF64748B),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    // Quick Tune Buttons (+/- 0.5s & Reset)
+                    if (!isRecording)
+                      Row(
+                        children: [
+                          _buildFineTuneBtn('-0.5s', () {
+                            controller.adjustRecordedConvDuration(-500);
+                          }),
+                          const SizedBox(width: 4),
+                          _buildFineTuneBtn('+0.5s', () {
+                            controller.adjustRecordedConvDuration(500);
+                          }),
+                          if (elapsedMs > 0) ...[
+                            const SizedBox(width: 4),
+                            IconButton(
+                              icon: const Icon(Icons.refresh, size: 16),
+                              color: const Color(0xFF94A3B8),
+                              tooltip: 'Reset Durasi',
+                              onPressed: () =>
+                                  controller.resetRecordedConvDuration(),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ],
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              // Tombol Utama Rekam (Play Jalan / Stop Berhenti)
+              if (!isRecording) ...[
+                Row(
+                  children: [
                     Expanded(
-                      flex: 1,
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF38BDF8),
-                          side: const BorderSide(color: Color(0xFF0284C7)),
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF059669),
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
+                          elevation: 0,
                         ),
-                        icon: Icon(
-                          isTesting ? Icons.stop : Icons.replay,
-                          size: 14,
+                        icon: const Icon(Icons.play_arrow, size: 18),
+                        label: const Text(
+                          'Play & Rekam Waktu',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                         ),
-                        label: Text(
-                          isTesting ? 'Batal' : 'Tes Putar',
-                          style: const TextStyle(
-                              fontSize: 11, fontWeight: FontWeight.bold),
-                        ),
-                        onPressed: () {
-                          if (isTesting) {
-                            controller.cancelConvTest();
-                          } else {
-                            controller.testPlayRecordedConv();
-                          }
-                        },
+                        onPressed: () => controller.startConvRecord(),
                       ),
                     ),
+                    if (elapsedMs > 0) ...[
+                      const SizedBox(width: 6),
+                      Expanded(
+                        flex: 1,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF38BDF8),
+                            side: const BorderSide(color: Color(0xFF0284C7)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          icon: Icon(
+                            isTesting ? Icons.stop : Icons.replay,
+                            size: 14,
+                          ),
+                          label: Text(
+                            isTesting ? 'Batal' : 'Tes Putar',
+                            style: const TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: () {
+                            if (isTesting) {
+                              controller.cancelConvTest();
+                            } else {
+                              controller.testPlayRecordedConv();
+                            }
+                          },
+                        ),
+                      ),
+                    ],
                   ],
-                ],
-              ),
-            ] else ...[
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFDC2626),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                ),
+              ] else ...[
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 2,
                   ),
-                  elevation: 2,
+                  icon: const Icon(Icons.stop, size: 20),
+                  label: const Text(
+                    'STOP & CATAT WAKTU (Simpan Durasi)',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () => controller.stopConvRecord(),
                 ),
-                icon: const Icon(Icons.stop, size: 20),
-                label: const Text(
-                  'STOP & CATAT WAKTU (Simpan Durasi)',
-                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
-                ),
-                onPressed: () => controller.stopConvRecord(),
-              ),
+              ],
             ],
           ] else ...[
             const SizedBox(height: 6),
@@ -573,6 +665,51 @@ class ConveyorWidget extends StatelessWidget {
             fontFamily: 'monospace',
             fontWeight: FontWeight.bold,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModeTab(
+      String label, bool isSelected, IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF0369A1).withValues(alpha: 0.3)
+              : const Color(0xFF090D15),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF38BDF8)
+                : const Color(0xFF1E293B),
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 13,
+              color: isSelected
+                  ? const Color(0xFF38BDF8)
+                  : const Color(0xFF64748B),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : const Color(0xFF64748B),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 10.5,
+              ),
+            ),
+          ],
         ),
       ),
     );
